@@ -747,10 +747,12 @@
     document.querySelectorAll(".dur-socket.dragover").forEach(s => s.classList.remove("dragover"));
   }
 
+  let activeChipDrag = null;
   function wireCastChipDrag(chipEl, key) {
     let dragging = false, startX = 0, startY = 0;
     chipEl.addEventListener("pointerdown", (e) => {
       if (playing) return;
+      if (activeChipDrag) activeChipDrag();
       startX = e.clientX; startY = e.clientY; dragging = false;
       chipEl.setPointerCapture(e.pointerId);
 
@@ -770,11 +772,16 @@
           highlightSocketUnder(ev.clientX, ev.clientY);
         }
       }
-      function onUp(ev) {
+      function cleanup() {
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onCancel);
         clearSocketHighlights();
         if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+        activeChipDrag = null;
+      }
+      function onUp(ev) {
+        cleanup();
         if (dragging) {
           const el = document.elementFromPoint(ev.clientX, ev.clientY);
           const socket = el && el.closest(".dur-socket");
@@ -796,16 +803,21 @@
           playPianoNote(noteFreq(key), 0.9, 0.6);
         }
       }
+      function onCancel() { cleanup(); }
+      activeChipDrag = cleanup;
       document.addEventListener("pointermove", onMove);
       document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onCancel);
     });
   }
 
   // ---------- step 2: drag the ready note out of its nest and onto the staff ----------
+  let activeSocketDrag = null;
   function wireSocketDrag(socketEl, dur) {
     let dragging = false, startX = 0, startY = 0;
     socketEl.addEventListener("pointerdown", (e) => {
       if (playing || !workbench[dur]) return;
+      if (activeSocketDrag) activeSocketDrag();
       const key = workbench[dur];
       startX = e.clientX; startY = e.clientY; dragging = false;
       socketEl.setPointerCapture(e.pointerId);
@@ -830,12 +842,17 @@
           highlightSocketUnder(ev.clientX, ev.clientY);
         }
       }
-      function onUp(ev) {
+      function cleanup() {
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onCancel);
         clearMeasureHighlights();
         clearSocketHighlights();
         if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+        activeSocketDrag = null;
+      }
+      function onUp(ev) {
+        cleanup();
         if (dragging) {
           const el = document.elementFromPoint(ev.clientX, ev.clientY);
           const overRoad = els.road.contains(el);
@@ -865,8 +882,11 @@
           playBeatCount(key, dur);
         }
       }
+      function onCancel() { cleanup(); }
+      activeSocketDrag = cleanup;
       document.addEventListener("pointermove", onMove);
       document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onCancel);
     });
   }
 
