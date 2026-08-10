@@ -200,7 +200,7 @@
     <div class="road-wrap" id="roadWrap">
       <div class="road" id="road">
         <div class="road-staff" id="roadStaff"></div>
-        <div class="road-placeholder" id="roadPlaceholder">גררו לכאן את הדמויות כדי להלחין מנגינה משלכם!</div>
+        <div class="road-placeholder" id="roadPlaceholder">גררו לכאן את הדמויות כדי להלחין מנגינה משלכם</div>
         <div class="road-inner" id="roadInner"></div>
         <div class="playhead" id="playhead"></div>
       </div>
@@ -478,6 +478,8 @@
   function clearAll() {
     sequence = [];
     renderRoad();
+    els.roadWrap.scrollLeft = 0;
+    requestAnimationFrame(() => { els.roadWrap.scrollLeft = 0; });
   }
 
   window.addEventListener("resize", renderRoad);
