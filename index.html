@@ -505,10 +505,12 @@
 
   // ---------- drag from cast strip: drop anywhere on the road at any spacing ----------
   let ghostEl = null;
+  let activeCastDrag = null;
   function wireDragFromCast(el, key) {
     let dragging = false, startX = 0, startY = 0;
     el.addEventListener("pointerdown", (e) => {
       if (playing) return;
+      if (activeCastDrag) activeCastDrag();
       startX = e.clientX; startY = e.clientY; dragging = false;
       el.setPointerCapture(e.pointerId);
 
@@ -527,10 +529,15 @@
           edgeAutoScroll(ev.clientX);
         }
       }
-      function onUp(ev) {
+      function cleanup() {
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onCancel);
         if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+        activeCastDrag = null;
+      }
+      function onUp(ev) {
+        cleanup();
         if (dragging) {
           const overRoad = els.road.contains(document.elementFromPoint(ev.clientX, ev.clientY));
           if (overRoad) {
@@ -546,17 +553,22 @@
           playPianoNote(noteFreq(key), 0.9);
         }
       }
+      function onCancel() { cleanup(); }
+      activeCastDrag = cleanup;
       document.addEventListener("pointermove", onMove);
       document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onCancel);
     });
   }
 
   // ---------- drag a note already on the road: reposition it (changes its timing), or drag it off to delete ----------
+  let activeRoadDrag = null;
   function wireDragOnRoad(noteEl, item) {
     let dragging = false, startX = 0, startY = 0;
     noteEl.addEventListener("pointerdown", (e) => {
       if (playing) return;
       if (e.target.closest(".rm")) return;
+      if (activeRoadDrag) activeRoadDrag();
       startX = e.clientX; startY = e.clientY; dragging = false;
       noteEl.setPointerCapture(e.pointerId);
 
@@ -570,9 +582,14 @@
           edgeAutoScroll(ev.clientX);
         }
       }
-      function onUp(ev) {
+      function cleanup() {
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onCancel);
+        activeRoadDrag = null;
+      }
+      function onUp(ev) {
+        cleanup();
         if (!dragging) {
           playPianoNote(noteFreq(item.key), 0.9);
           return;
@@ -588,8 +605,14 @@
         renderRoad();
         playPianoNote(noteFreq(item.key), 0.9);
       }
+      function onCancel() {
+        cleanup();
+        renderRoad(); // snap the note's visual position back to its real (unchanged) data position
+      }
+      activeRoadDrag = cleanup;
       document.addEventListener("pointermove", onMove);
       document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onCancel);
     });
   }
 
