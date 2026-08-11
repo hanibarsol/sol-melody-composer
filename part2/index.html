@@ -652,8 +652,21 @@
   renderSockets();
 
   // ---------- render ----------
+  // Placed notes keep their DOM element across renders (looked up by object identity in
+  // noteEls) instead of being torn down and recreated every time — with many notes on the
+  // staff, rebuilding every image + listener on every single add/remove used to add up to
+  // real, noticeable lag. Only the (cheap, image-free) bar lines/zones/quota dots are
+  // rebuilt fully each render; note DOM/listeners are created once and then just repositioned.
+  let noteEls = new Map();
+  function locateItem(item) {
+    for (let mIdx = 0; mIdx < measures.length; mIdx++) {
+      const iIdx = measures[mIdx].indexOf(item);
+      if (iIdx !== -1) return { mIdx: mIdx, iIdx: iIdx };
+    }
+    return null;
+  }
   function renderRoad() {
-    els.roadInner.innerHTML = "";
+    els.roadInner.querySelectorAll(".bar-line, .measure-zone, .measure-quota").forEach(el => el.remove());
     const totalW = CLEF_ZONE + measures.length * MEASURE_W + 20;
     els.road.style.width = totalW + "px";
 
@@ -665,7 +678,7 @@
       els.roadInner.appendChild(bl);
     }
 
-    let seqIndex = 0;
+    const seen = new Set();
     measures.forEach((m, mIdx) => {
       const zone = document.createElement("div");
       zone.className = "measure-zone";
@@ -687,14 +700,28 @@
       els.roadInner.appendChild(quotaRow);
 
       let beatCursor = 0;
-      m.forEach((item, iIdx) => {
+      m.forEach((item) => {
+        seen.add(item);
         const cx = measureXStart(mIdx) + (beatCursor + item.dur / 2) * PX_PER_BEAT;
         beatCursor += item.dur;
-        const mySeq = seqIndex++;
 
         const y = stepY(NOTES[item.key].step);
         const size = noteSizeFor(item.dur);
-        const note = document.createElement("div");
+        let note = noteEls.get(item);
+        if (!note) {
+          note = document.createElement("div");
+          note.style.setProperty("--ring", ringVar(item.key));
+          const stemMarkup = stemHtml(item.dur, size);
+          const tintMarkup = item.dur === 1 ? '<span class="fill-tint"></span>' : "";
+          note.innerHTML = '<span class="road-note-avatar"><img src="' + IMG_SRC[item.key] + '" alt=""></span>' +
+            tintMarkup + stemMarkup + '<button class="rm" title="הסר">×</button>';
+          note.querySelector(".rm").addEventListener("click", (e) => {
+            e.stopPropagation();
+            const loc = locateItem(item);
+            if (loc) removeItem(loc.mIdx, loc.iIdx);
+          });
+          noteEls.set(item, note);
+        }
         note.className = "road-note" + (NOTES[item.key].step <= -2 ? " ledger" : "");
         note.style.left = cx + "px";
         note.style.top = y + "px";
@@ -702,15 +729,12 @@
         note.style.height = size + "px";
         note.style.marginLeft = (-size / 2) + "px";
         note.style.marginTop = (-size / 2) + "px";
-        note.style.setProperty("--ring", ringVar(item.key));
-        note.dataset.seq = mySeq;
-        const stemMarkup = stemHtml(item.dur, size);
-        const tintMarkup = item.dur === 1 ? '<span class="fill-tint"></span>' : "";
-        note.innerHTML = '<span class="road-note-avatar"><img src="' + IMG_SRC[item.key] + '" alt=""></span>' +
-          tintMarkup + stemMarkup + '<button class="rm" title="הסר">×</button>';
         els.roadInner.appendChild(note);
-        note.querySelector(".rm").addEventListener("click", (e) => { e.stopPropagation(); removeItem(mIdx, iIdx); });
       });
+    });
+
+    noteEls.forEach((note, item) => {
+      if (!seen.has(item)) { note.remove(); noteEls.delete(item); }
     });
   }
 
