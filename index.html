@@ -434,27 +434,49 @@
   // squeezing everything into whatever width happened to be visible.
   function clampX(x) { return Math.max(PAD, Math.min(20000, x)); }
 
+  // Notes already on the road keep their DOM element across renders (looked up by
+  // object identity in roadNoteEls) instead of being torn down and recreated every time —
+  // with 50+ notes, rebuilding every image + listener on every single add/drag used to
+  // add up to real, noticeable lag. Only genuinely new/removed notes touch the DOM now.
+  let roadNoteEls = new Map();
   function renderRoad() {
-    els.roadInner.innerHTML = "";
     els.roadPlaceholder.style.display = sequence.length ? "none" : "flex";
     const rightmost = sequence.length ? sequence[sequence.length - 1].x : 0;
     els.road.style.width = (rightmost + EXTRA_ROOM) + "px";
-    sequence.forEach((item, i) => {
+
+    const seen = new Set();
+    sequence.forEach((item) => {
+      seen.add(item);
+      let note = roadNoteEls.get(item);
+      if (!note) {
+        note = document.createElement("div");
+        note.style.setProperty("--ring", ringVar(item.key));
+        note.innerHTML = '<span class="road-note-avatar"><img src="' + IMG_SRC[item.key] + '" alt=""></span>' +
+          '<button class="rm" title="הסר">×</button>';
+        note.querySelector(".rm").addEventListener("click", (e) => {
+          e.stopPropagation();
+          removeAt(sequence.indexOf(item));
+        });
+        wireDragOnRoad(note, item);
+        roadNoteEls.set(item, note);
+      }
+      // always re-append in sequence order (cheap DOM move, not a recreate) — playback
+      // highlighting looks up notes by position in the DOM, so this must stay in sync
+      // with sequence order even after a drag reorders things
+      els.roadInner.appendChild(note);
       const y = stepY(NOTES[item.key].step);
-      const note = document.createElement("div");
       note.className = "road-note" + (NOTES[item.key].step <= -2 ? " ledger" : "");
       note.style.left = item.x + "px";
       note.style.top = y + "px";
-      note.style.setProperty("--ring", ringVar(item.key));
-      note.innerHTML = '<span class="road-note-avatar"><img src="' + IMG_SRC[item.key] + '" alt=""></span>' +
-        '<button class="rm" title="הסר" data-index="' + i + '">×</button>';
-      els.roadInner.appendChild(note);
-      note.querySelector(".rm").addEventListener("click", (e) => {
-        e.stopPropagation();
-        removeAt(i);
-      });
-      wireDragOnRoad(note, item);
     });
+
+    roadNoteEls.forEach((note, item) => {
+      if (!seen.has(item)) {
+        note.remove();
+        roadNoteEls.delete(item);
+      }
+    });
+
     save();
   }
 
@@ -651,9 +673,9 @@
     function scheduleNext(i) {
       if (i >= sequence.length) { stopPlayback(); return; }
       const item = sequence[i];
-      const noteEls = els.roadInner.querySelectorAll(".road-note");
-      noteEls.forEach(n => n.classList.remove("playing"));
-      const noteEl = noteEls[i];
+      const domNotes = els.roadInner.querySelectorAll(".road-note");
+      domNotes.forEach(n => n.classList.remove("playing"));
+      const noteEl = domNotes[i];
 
       els.playhead.style.transitionDuration = "0s";
       els.playhead.style.left = item.x + "px";
