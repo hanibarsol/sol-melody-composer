@@ -204,7 +204,9 @@
   .btn-info:active { transform: scale(.96); }
   .btn-info:focus-visible { outline: 3px solid var(--accent-teal); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { .btn-info { animation: none; } }
-  @media (max-width: 700px) { .btn-info { position: static; margin-bottom: 10px; } }
+  @media (max-width: 1024px) {
+    .btn-info { position: static; display: flex; width: fit-content; margin: 0 auto 10px 0; }
+  }
   .video-modal-backdrop {
     position: fixed; inset: 0; background: rgba(15,12,25,.8); z-index: 200;
     display: flex; align-items: center; justify-content: center; padding: 16px;
