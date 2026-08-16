@@ -187,7 +187,7 @@
   .save-modal-actions { display: flex; gap: 10px; justify-content: center; }
   .app { position: relative; }
   .btn-info {
-    position: absolute; top: 14px; left: 0;
+    position: absolute; top: 14px; right: 0;
     display: inline-flex; align-items: center; gap: 5px; font-family: inherit; font-weight: 800; font-size: 12.5px;
     text-decoration: none; border-radius: 999px; padding: 7px 13px; cursor: pointer; z-index: 5;
     background: #1BE7C9; border: none; color: #000;
@@ -230,15 +230,27 @@
   @media (max-width: 480px) { .video-modal-box { max-width: 100%; } }
 </style>
 <style>
+  /* ---------- Sol home button (unified turquoise) ---------- */
   .home-button {
-    position: fixed; top: 14px; right: 14px; z-index: 9999;
-    width: 40px; height: 40px; border-radius: 50%;
-    background: var(--good);
+    position: fixed; top: 12px; left: 12px; z-index: 101;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #17A79B;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    box-shadow: 0 4px 14px rgba(18, 48, 44, 0.35);
     text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .home-button svg { width: 20px; height: 20px; }
+  .home-button:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 8px 18px rgba(18, 48, 44, 0.45); }
+  .home-button:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 3px; }
+  .home-button svg { width: 26px; height: 26px; }
+  @media (max-width: 640px) {
+    .home-button { width: 44px; height: 44px; top: 8px; left: 8px; }
+    .home-button svg { width: 22px; height: 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .home-button { transition: none; }
+    .home-button:hover { transform: none; }
+  }
 </style>
 <a class="home-button" href="https://portal.smoove.io/gsbmtbnbbf1yd87kbofd1/Category?category=qqb" target="_top" aria-label="חזרה למסך הבית">
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
