@@ -2,7 +2,8 @@
 
 חלק מ"המשפחה של סול" — פלטפורמה מוזיקלית לילדים בגילי 4-8.
 האתר החי: https://hanibarsol.github.io/sol-melody-composer/
-עמוד נוסף במאגר: https://hanibarsol.github.io/sol-melody-composer/part2/
+חלק 2 של השיעור עבר ב-2026-08-18 למאגר נפרד: sol-melody-composer-2
+https://hanibarsol.github.io/sol-melody-composer-2/ — אין להחזיר אותו לכאן.
 
 ## איך מעלים שינוי — חשוב
 
