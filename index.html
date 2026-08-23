@@ -456,7 +456,22 @@
   }
   let audioCtx = null;
   function ensureAudioCtx() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      /* Ask for the shortest delay the machine can manage between a press and its sound.
+
+         Without this a browser picks a comfortable buffer instead of a quick one, and on
+         Windows that regularly means a tenth of a second or more between the finger and the
+         note. For a child pressing a character to hear who it is, that gap is the difference
+         between the sound belonging to the press and merely following it.
+
+         A browser is allowed to refuse and give a longer buffer, so this can only help. */
+      try {
+        audioCtx = new Ctx({ latencyHint: "interactive" });
+      } catch (e) {
+        audioCtx = new Ctx();
+      }
+    }
     if (audioCtx.state === "suspended") audioCtx.resume();
     return audioCtx;
   }
@@ -469,7 +484,15 @@
       osc.start(); osc.stop(ac.currentTime + 0.05);
     } catch (e) {}
   }
-  document.addEventListener("pointerdown", unlockAudio, { once: true });
+  /* Wake the engine on the first touch anywhere on the page — a scroll, the title, any button.
+
+     Starting an audio engine costs about a tenth of a second and may only be done while the
+     page is handling a real gesture. It used to happen on the first press of a character, so
+     that one press carried the whole cost and felt slow. Almost any child touches something
+     else first, and now that touch pays it instead. */
+  ["pointerdown", "pointerup", "keydown"].forEach(function (ev) {
+    document.addEventListener(ev, unlockAudio, { once: true, capture: true });
+  });
 
   function playPianoNote(freq, velocity) {
     velocity = velocity || 1;
