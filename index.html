@@ -704,10 +704,36 @@
       startX = e.clientX; startY = e.clientY; dragging = false;
       el.setPointerCapture(e.pointerId);
 
+      /* The note lands NOW, not when the finger comes off.
+
+         It used to be added on release, because release is when you finally know whether this
+         was a tap or a drag. The cost was that the whole time a child held their finger down —
+         measured at over half a second, and small children hold longer — the screen did
+         nothing at all, and the lesson felt slow. Drawing the note itself takes 3ms; the wait
+         WAS the finger.
+
+         So it is placed immediately and taken back if a drag turns out to be what was meant.
+         Tapping is what nearly every child does, and it is now instant. */
+      addNote(key, nextAppendX());
+      let tookItBack = false;
+      unlockAudio();
+      playPianoNote(noteFreq(key), 0.9);
+
+      function takeItBack() {
+        if (tookItBack) return;
+        tookItBack = true;
+        // the note just placed is the last one carrying this character at that spot
+        for (let i = sequence.length - 1; i >= 0; i--) {
+          if (sequence[i].key === key) { sequence.splice(i, 1); break; }
+        }
+        renderRoad();
+      }
+
       function onMove(ev) {
         const dx = ev.clientX - startX, dy = ev.clientY - startY;
         if (!dragging && Math.hypot(dx, dy) > 8) {
           dragging = true;
+          takeItBack();   // this was a drag after all
           ghostEl = document.createElement("div");
           ghostEl.className = "drag-ghost";
           ghostEl.innerHTML = '<img src="' + IMG_SRC[key] + '">';
@@ -736,14 +762,10 @@
             unlockAudio();
             playPianoNote(noteFreq(key), 0.9);
           }
-        } else {
-          // plain tap (no drag): add it at the end, like the hint text promises
-          addNote(key, nextAppendX());
-          unlockAudio();
-          playPianoNote(noteFreq(key), 0.9);
         }
+        // a plain tap needs nothing here: the note went down when the finger landed
       }
-      function onCancel() { cleanup(); }
+      function onCancel() { takeItBack(); cleanup(); }
       activeCastDrag = cleanup;
       document.addEventListener("pointermove", onMove);
       document.addEventListener("pointerup", onUp);
